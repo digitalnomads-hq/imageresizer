@@ -3,27 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Resizer</title>
+  <title>Image Resizer — Digital Nomads HQ</title>
   <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f0f11;
-      --surface: #1a1a1f;
-      --surface2: #242429;
-      --border: #2e2e36;
-      --accent: #6c63ff;
-      --accent-hover: #8079ff;
-      --text: #e8e8f0;
-      --text-muted: #7a7a8c;
-      --success: #22c55e;
-      --danger: #ef4444;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #e8eef5;
+      --border: #cdd6e0;
+      --accent: #4F35CE;
+      --accent-hover: #3d28a8;
+      --text: #002A45;
+      --text-muted: #5a7585;
+      --success: #15803d;
+      --danger: #dc2626;
       --radius: 10px;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -32,22 +34,23 @@
     }
 
     header {
-      padding: 18px 28px;
-      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      background: #002A45;
+      border-bottom: none;
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: #ffffff; }
 
     header span {
       font-size: 11px;
-      color: var(--text-muted);
-      background: var(--surface2);
+      color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.08);
       padding: 3px 8px;
       border-radius: 20px;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,0.14);
     }
 
     .main { display: flex; flex: 1; overflow: hidden; }
@@ -88,7 +91,7 @@
     }
 
     .preset-row:hover { background: var(--surface2); border-color: var(--border); }
-    .preset-row.checked { background: #6c63ff14; border-color: #6c63ff55; }
+    .preset-row.checked { background: #4F35CE0f; border-color: #4F35CE44; }
 
     .preset-row input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
 
@@ -245,7 +248,7 @@
       transition: all 0.2s;
       background: var(--surface);
     }
-    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: #6c63ff0d; }
+    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: #4F35CE08; }
     .dropzone-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.55; }
     .dropzone h2 { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
     .dropzone p { font-size: 12px; color: var(--text-muted); }
@@ -278,7 +281,7 @@
       align-items: flex-start;
       transition: border-color 0.12s;
     }
-    .card:hover { border-color: #3e3e4e; }
+    .card:hover { border-color: #b0bec8; box-shadow: 0 2px 8px rgba(0,42,69,0.06); }
 
     .card-thumb-wrap { position: relative; flex-shrink: 0; }
 
@@ -298,7 +301,7 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: #1a1a1f;
+      background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text-muted);
       font-size: 10px;
@@ -340,7 +343,7 @@
     }
 
     .variant.processing { border-color: var(--accent); animation: pulse 1s infinite; }
-    .variant.done { border-color: #22c55e44; background: #22c55e0d; }
+    .variant.done { border-color: #15803d44; background: #15803d08; }
     .variant.error { border-color: #ef444444; }
 
     .variant-label { color: var(--text-muted); }
@@ -357,6 +360,15 @@
       transition: color 0.12s;
     }
     .variant-dl:hover { color: var(--accent); }
+
+    .variant-smaller {
+      font-size: 10px;
+      color: #f59e0b;
+      background: #f59e0b14;
+      border: 1px solid #f59e0b33;
+      border-radius: 3px;
+      padding: 1px 4px;
+    }
 
     @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
 
@@ -390,8 +402,8 @@
       margin-left: auto;
       transition: all 0.3s;
     }
-    .codec-badge.ready  { border-color: #22c55e55; color: var(--success); background: #22c55e0d; }
-    .codec-badge.loading { border-color: #6c63ff55; color: var(--accent); animation: pulse 1.5s infinite; }
+    .codec-badge.ready  { border-color: rgba(255,255,255,0.3); color: #86efac; background: rgba(255,255,255,0.08); }
+    .codec-badge.loading { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); animation: pulse 1.5s infinite; }
     .codec-badge.fallback { opacity: 0.6; }
 
     select {
@@ -421,6 +433,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
+      box-shadow: 0 8px 40px rgba(0,42,69,0.18);
       display: flex;
       flex-direction: column;
       max-width: min(960px, 100%);
@@ -548,7 +561,7 @@
       transition: all 0.12s;
     }
     .compare-tab:hover { border-color: var(--accent); color: var(--accent); }
-    .compare-tab.active { border-color: var(--accent); background: #6c63ff18; color: var(--accent); }
+    .compare-tab.active { border-color: var(--accent); background: #4F35CE0f; color: var(--accent); }
 
     .card-compare-btn {
       margin-top: 6px;
@@ -828,9 +841,11 @@ function getExt(file) {
   return state.format === 'jpeg' ? 'jpg' : state.format;
 }
 
-function getOutName(img, preset) {
+function getOutName(img, preset, resized = true) {
   const base = img.name.replace(/\.[^.]+$/, '');
-  return `${base}${getSuffix(preset)}.${getExt(img.file)}`;
+  // Skip the size suffix when the image was not resized (already smaller than the target width)
+  const suffix = (!resized && state.suffix === 'auto') ? '' : getSuffix(preset);
+  return `${base}${suffix}.${getExt(img.file)}`;
 }
 
 function updateSuffixPreview() {
@@ -935,9 +950,10 @@ function refreshVariants(img) {
     const label = preset.width > 0 ? `${preset.width}w` : 'orig';
 
     if (v) {
-      const outName = getOutName(img, preset);
+      const outName = getOutName(img, preset, v.resized);
       chip.innerHTML = `
         <span class="variant-label">${label}</span>
+        ${!v.resized && preset.width > 0 ? `<span class="variant-smaller">already smaller</span>` : ''}
         <span class="variant-size">${fmtSize(v.blob.size)}</span>
         <button class="variant-dl" title="Download ${outName}">↓</button>
       `;
@@ -973,9 +989,9 @@ processBtn.addEventListener('click', async () => {
       if (chip) { chip.className = 'variant processing'; chip.innerHTML = `<span class="variant-label">${preset.width > 0 ? preset.width+'w' : 'orig'}</span><span class="variant-size">…</span>`; }
 
       try {
-        const blob = await processImage(img.file, preset);
+        const { blob, resized } = await processImage(img.file, preset);
         const url = URL.createObjectURL(blob);
-        img.variants.set(preset.id, { blob, url });
+        img.variants.set(preset.id, { blob, url, resized });
       } catch (err) {
         console.error(err);
         if (chip) { chip.className = 'variant error'; chip.querySelector('.variant-size').textContent = 'err'; }
@@ -1030,7 +1046,8 @@ async function processImage(file, preset) {
 
   let { width, height } = imgEl;
   const mw = preset.width;
-  if (mw > 0 && width > mw) {
+  const resized = mw > 0 && imgEl.width > mw;
+  if (resized) {
     height = Math.round(height * mw / width);
     width = mw;
   }
@@ -1059,7 +1076,7 @@ async function processImage(file, preset) {
       } else if (mime === 'image/webp' && codecs.webp) {
         buffer = await codecs.webp(imageData, { quality });
       }
-      if (buffer) return new Blob([buffer], { type: mime });
+      if (buffer) return { blob: new Blob([buffer], { type: mime }), resized };
     } catch (e) {
       console.warn('WASM encode failed, falling back to canvas:', e);
     }
@@ -1067,7 +1084,7 @@ async function processImage(file, preset) {
 
   // Fallback: browser's built-in canvas encoder
   return new Promise((resolve, reject) => {
-    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), mime, quality / 100);
+    canvas.toBlob(blob => blob ? resolve({ blob, resized }) : reject(new Error('toBlob failed')), mime, quality / 100);
   });
 }
 
@@ -1078,7 +1095,7 @@ downloadAllBtn.addEventListener('click', async () => {
   for (const img of state.images) {
     for (const [pid, v] of img.variants) {
       const preset = presets.find(p => p.id === pid);
-      if (preset) entries.push({ blob: v.blob, name: getOutName(img, preset) });
+      if (preset) entries.push({ blob: v.blob, name: getOutName(img, preset, v.resized) });
     }
   }
   if (!entries.length) return;

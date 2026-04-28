@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Resizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f11;
+      --surface: #1a1a1f;
+      --surface2: #242429;
+      --border: #2e2e36;
+      --accent: #6c63ff;
+      --accent-hover: #8079ff;
+      --text: #e8e8f0;
+      --text-muted: #7a7a8c;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+
+    header span {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--surface2);
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 270px;
+      min-width: 270px;
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Presets */
+    .preset-list { display: flex; flex-direction: column; gap: 3px; }
+
+    .preset-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .preset-row:hover { background: var(--surface2); border-color: var(--border); }
+    .preset-row.checked { background: #6c63ff14; border-color: #6c63ff55; }
+
+    .preset-row input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
+
+    .preset-info { flex: 1; min-width: 0; }
+    .preset-name { font-size: 13px; font-weight: 500; }
+    .preset-detail { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .preset-q {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 5px;
+      cursor: default;
+    }
+
+    /* Add custom size */
+    .add-custom {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .add-custom input[type="number"] {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 8px;
+      font-size: 12px;
+      outline: none;
+    }
+    .add-custom input[type="number"]:focus { border-color: var(--accent); }
+
+    .add-custom button {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .add-custom button:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Quality */
+    .quality-row { display: flex; align-items: center; gap: 10px; }
+    input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+    .quality-val { font-size: 13px; font-weight: 600; min-width: 34px; text-align: right; color: var(--accent); }
+
+    /* Format tabs */
+    .format-tabs {
+      display: flex;
+      gap: 3px;
+      background: var(--surface2);
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .format-tab {
+      flex: 1;
+      text-align: center;
+      padding: 5px 4px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.12s;
+      user-select: none;
+    }
+    .format-tab.active { background: var(--accent); color: #fff; }
+
+    /* Filename suffix */
+    .suffix-options { display: flex; flex-direction: column; gap: 5px; }
+
+    .radio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .radio-row input { accent-color: var(--accent); cursor: pointer; }
+    .radio-row.active { color: var(--text); }
+
+    #customSuffixInput {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 8px;
+      font-size: 12px;
+      outline: none;
+      margin-top: 2px;
+    }
+    #customSuffixInput:focus { border-color: var(--accent); }
+    #customSuffixInput:disabled { opacity: 0.4; }
+
+    .suffix-preview {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-family: monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Actions */
+    .actions { display: flex; flex-direction: column; gap: 7px; margin-top: auto; }
+
+    .btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 40px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface);
+    }
+    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: #6c63ff0d; }
+    .dropzone-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.55; }
+    .dropzone h2 { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+    .dropzone p { font-size: 12px; color: var(--text-muted); }
+    .dropzone p em { color: var(--accent); font-style: normal; }
+
+    /* Stats */
+    .stats {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 9px 14px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .stats strong { color: var(--text); }
+
+    /* Cards */
+    .card-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      gap: 14px;
+      padding: 12px;
+      align-items: flex-start;
+      transition: border-color 0.12s;
+    }
+    .card:hover { border-color: #3e3e4e; }
+
+    .card-thumb-wrap { position: relative; flex-shrink: 0; }
+
+    .card-thumb {
+      width: 80px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: var(--surface2);
+      display: block;
+    }
+
+    .card-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a1a1f;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .card:hover .card-remove { opacity: 1; }
+    .card-remove:hover { border-color: var(--danger); color: var(--danger); }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+
+    .card-orig { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+
+    /* Size variants */
+    .variants { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .variant {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      font-size: 11px;
+    }
+
+    .variant.processing { border-color: var(--accent); animation: pulse 1s infinite; }
+    .variant.done { border-color: #22c55e44; background: #22c55e0d; }
+    .variant.error { border-color: #ef444444; }
+
+    .variant-label { color: var(--text-muted); }
+    .variant-size { font-weight: 500; }
+
+    .variant-dl {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1;
+      transition: color 0.12s;
+    }
+    .variant-dl:hover { color: var(--accent); }
+
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
+
+    .no-sizes {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .card-dl-btn {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .card-dl-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .codec-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      margin-left: auto;
+      transition: all 0.3s;
+    }
+    .codec-badge.ready  { border-color: #22c55e55; color: var(--success); background: #22c55e0d; }
+    .codec-badge.loading { border-color: #6c63ff55; color: var(--accent); animation: pulse 1.5s infinite; }
+    .codec-badge.fallback { opacity: 0.6; }
+
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 8px;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+    select:focus { border-color: var(--accent); }
+
+    /* ── Compare modal ── */
+    .compare-modal {
+      position: fixed; inset: 0;
+      background: #000000cc;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      max-width: min(960px, 100%);
+      max-height: calc(100vh - 48px);
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .compare-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .compare-header-title { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .compare-close {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+      transition: color 0.12s;
+    }
+    .compare-close:hover { color: var(--text); }
+
+    .compare-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .compare-wrap {
+      position: relative;
+      cursor: col-resize;
+      user-select: none;
+      touch-action: none;
+      border-radius: 6px;
+      overflow: hidden;
+      max-width: 100%;
+      max-height: 100%;
+      line-height: 0;
+    }
+
+    .compare-img {
+      display: block;
+      max-width: 100%;
+      max-height: calc(100vh - 220px);
+      object-fit: contain;
+    }
+
+    .compare-top {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .compare-handle {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: #fff;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .compare-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: #fff;
+      color: #111;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 2px 10px #0006;
+    }
+
+    .compare-label-orig,
+    .compare-label-proc {
+      position: absolute;
+      top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 4px;
+      pointer-events: none;
+      background: #000000aa;
+      color: #fff;
+    }
+    .compare-label-orig { right: 10px; }
+    .compare-label-proc { left: 10px; }
+
+    .compare-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .compare-size-info { font-size: 12px; color: var(--text-muted); flex: 1; }
+    .compare-size-info strong { color: var(--text); }
+    .compare-size-savings { color: var(--success); font-weight: 600; }
+
+    .compare-tabs { display: flex; gap: 5px; }
+
+    .compare-tab {
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-size: 11px; font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .compare-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .compare-tab.active { border-color: var(--accent); background: #6c63ff18; color: var(--accent); }
+
+    .card-compare-btn {
+      margin-top: 6px;
+      padding: 5px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px; font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .card-compare-btn:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Image Resizer</h1>
+  <span>Client-side · No uploads</span>
+  <span id="codecBadge" class="codec-badge loading">Loading MozJPEG + OxiPNG…</span>
+</header>
+
+<div class="main">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-label">Sizes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:10px">— pick one or more</span></div>
+      <div class="preset-list" id="presetList"></div>
+
+      <div class="add-custom" style="margin-top:8px">
+        <input type="number" id="customWInput" placeholder="e.g. 2000" min="1" max="8000" step="10" />
+        <button id="addCustomBtn">+ Add</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Default Quality</div>
+      <div class="quality-row">
+        <input type="range" id="qualityRange" min="1" max="100" value="85" />
+        <span class="quality-val" id="qualityVal">85%</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:5px">Per-preset quality overrides are shown on each row</div>
+    </div>
+
+    <div>
+      <div class="section-label">Output Format</div>
+      <div class="format-tabs" id="formatTabs">
+        <div class="format-tab" data-fmt="same">Same</div>
+        <div class="format-tab active" data-fmt="jpeg">JPEG</div>
+        <div class="format-tab" data-fmt="png">PNG</div>
+        <div class="format-tab" data-fmt="webp">WebP</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Filename Suffix</div>
+      <div class="suffix-options">
+        <label class="radio-row">
+          <input type="radio" name="suffix" value="none" /> None
+        </label>
+        <label class="radio-row active" id="suffixAutoLabel">
+          <input type="radio" name="suffix" value="auto" checked /> Size (e.g. <code style="font-size:10px">-2560w</code>)
+        </label>
+        <label class="radio-row" id="suffixCustomLabel">
+          <input type="radio" name="suffix" value="custom" /> Custom
+        </label>
+        <input type="text" id="customSuffixInput" placeholder="-web" disabled maxlength="40" />
+        <div class="suffix-preview" id="suffixPreview">photo-2560w.jpg</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="processBtn" disabled>Process Images</button>
+      <button class="btn btn-secondary" id="downloadAllBtn" disabled>Download All as ZIP</button>
+      <button class="btn btn-secondary" id="clearBtn" disabled>Clear All</button>
+    </div>
+
+  </aside>
+
+  <!-- ── Content ── -->
+  <main class="content">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">⬆</div>
+      <h2>Drop images here</h2>
+      <p>or <em>click to browse</em> · JPG, PNG, WebP, GIF, AVIF</p>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+    </div>
+
+    <div id="statsBar" class="stats" style="display:none">
+      <span>Images: <strong id="statCount">0</strong></span>
+      <span>Sizes selected: <strong id="statSizes">0</strong></span>
+      <span>Original total: <strong id="statOrigSize">—</strong></span>
+      <span>Processed total: <strong id="statNewSize">—</strong></span>
+      <span>Saved: <strong id="statSaved">—</strong></span>
+    </div>
+
+    <div class="card-list" id="cardList"></div>
+  </main>
+</div>
+
+<!-- ── Compare modal ── -->
+<div id="compareModal" class="compare-modal" style="display:none">
+  <div class="compare-box">
+    <div class="compare-header">
+      <div class="compare-header-title" id="compareTitle">Compare</div>
+      <button class="compare-close" id="compareClose">✕</button>
+    </div>
+    <div class="compare-stage">
+      <div class="compare-wrap" id="compareWrap">
+        <img id="compareOrigImg" class="compare-img" alt="Original" />
+        <img id="compareProcImg" class="compare-img compare-top" alt="Compressed" />
+        <div class="compare-label-orig" id="compareLabelOrig">Original</div>
+        <div class="compare-label-proc" id="compareLabelProc">Compressed</div>
+        <div class="compare-handle" id="compareHandle">
+          <div class="compare-knob">↔</div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-footer">
+      <div class="compare-size-info" id="compareSizeInfo"></div>
+      <div class="compare-tabs" id="compareVariantTabs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Preset definitions ───────────────────────────────────────────────────────
+
+const DEFAULT_PRESETS = [
+  { id: 'p2560', label: 'Web 2x / Retina', width: 2560, quality: 85, checked: true },
+  { id: 'p1920', label: 'Web Hero',         width: 1920, quality: 85, checked: false },
+  { id: 'p1280', label: 'Web Large',        width: 1280, quality: 82, checked: false },
+  { id: 'p800',  label: 'Web Standard',     width: 800,  quality: 80, checked: false },
+  { id: 'p400',  label: 'Thumbnail',        width: 400,  quality: 75, checked: false },
+  { id: 'p1080', label: 'Social Media',     width: 1080, quality: 88, checked: false },
+  { id: 'p0',    label: 'Compress Only',    width: 0,    quality: 92, checked: false },
+];
+
+// live preset list (may have custom entries appended)
+let presets = DEFAULT_PRESETS.map(p => ({ ...p }));
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+const state = {
+  images: [],        // { id, file, name, origSize, originalUrl, variants: Map<presetId, {blob,url}> }
+  quality: 85,       // default quality (used when preset has no override set)
+  format: 'jpeg',
+  suffix: 'auto',    // 'none' | 'auto' | 'custom'
+  customSuffix: '-web',
+};
+
+let nextId = 0;
+let nextCustomId = 100;
+
+// ─── DOM refs ────────────────────────────────────────────────────────────────
+
+const dropzone       = document.getElementById('dropzone');
+const fileInput      = document.getElementById('fileInput');
+const cardList       = document.getElementById('cardList');
+const processBtn     = document.getElementById('processBtn');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const clearBtn       = document.getElementById('clearBtn');
+const statsBar       = document.getElementById('statsBar');
+const qualityRange   = document.getElementById('qualityRange');
+const qualityVal     = document.getElementById('qualityVal');
+const customSuffixInput = document.getElementById('customSuffixInput');
+const suffixPreview  = document.getElementById('suffixPreview');
+
+// ─── Render preset list ───────────────────────────────────────────────────────
+
+function renderPresets() {
+  const list = document.getElementById('presetList');
+  list.innerHTML = '';
+
+  presets.forEach(preset => {
+    const row = document.createElement('label');
+    row.className = 'preset-row' + (preset.checked ? ' checked' : '');
+    row.dataset.id = preset.id;
+    row.innerHTML = `
+      <input type="checkbox" ${preset.checked ? 'checked' : ''} />
+      <div class="preset-info">
+        <div class="preset-name">${esc(preset.label)}</div>
+        <div class="preset-detail">${preset.width > 0 ? `Max ${preset.width}px` : 'Original size'}</div>
+      </div>
+      <span class="preset-q">${preset.quality}%</span>
+      ${preset.id.startsWith('custom') ? `<button class="preset-remove" title="Remove" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 2px">✕</button>` : ''}
+    `;
+
+    const cb = row.querySelector('input[type="checkbox"]');
+    cb.addEventListener('change', () => {
+      preset.checked = cb.checked;
+      row.classList.toggle('checked', cb.checked);
+      updateUI();
+      updateSuffixPreview();
+    });
+
+    const rmBtn = row.querySelector('.preset-remove');
+    if (rmBtn) {
+      rmBtn.addEventListener('click', e => {
+        e.preventDefault();
+        presets = presets.filter(p => p.id !== preset.id);
+        renderPresets();
+        updateUI();
+      });
+    }
+
+    list.appendChild(row);
+  });
+}
+
+// ─── Add custom size ──────────────────────────────────────────────────────────
+
+document.getElementById('addCustomBtn').addEventListener('click', () => {
+  const val = parseInt(document.getElementById('customWInput').value);
+  if (!val || val < 1 || val > 8000) return;
+  const id = 'custom' + (nextCustomId++);
+  presets.push({ id, label: `Custom ${val}px`, width: val, quality: state.quality, checked: true });
+  renderPresets();
+  updateUI();
+  updateSuffixPreview();
+  document.getElementById('customWInput').value = '';
+});
+
+document.getElementById('customWInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addCustomBtn').click();
+});
+
+// ─── Quality ─────────────────────────────────────────────────────────────────
+
+qualityRange.addEventListener('input', () => {
+  state.quality = parseInt(qualityRange.value);
+  qualityVal.textContent = state.quality + '%';
+});
+
+// ─── Format ──────────────────────────────────────────────────────────────────
+
+document.getElementById('formatTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.format-tab');
+  if (!tab) return;
+  document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  state.format = tab.dataset.fmt;
+  updateSuffixPreview();
+});
+
+// ─── Suffix ───────────────────────────────────────────────────────────────────
+
+document.querySelectorAll('input[name="suffix"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    state.suffix = radio.value;
+    customSuffixInput.disabled = state.suffix !== 'custom';
+    document.querySelectorAll('.radio-row').forEach(r => r.classList.remove('active'));
+    radio.closest('.radio-row').classList.add('active');
+    updateSuffixPreview();
+  });
+});
+
+customSuffixInput.addEventListener('input', () => {
+  state.customSuffix = customSuffixInput.value;
+  updateSuffixPreview();
+});
+
+function getSuffix(preset) {
+  if (state.suffix === 'none') return '';
+  if (state.suffix === 'auto') return preset.width > 0 ? `-${preset.width}w` : '-compressed';
+  return state.customSuffix || '';
+}
+
+function getExt(file) {
+  if (state.format === 'same') {
+    return file?.type === 'image/png' ? 'png'
+         : file?.type === 'image/webp' ? 'webp'
+         : 'jpg';
+  }
+  return state.format === 'jpeg' ? 'jpg' : state.format;
+}
+
+function getOutName(img, preset) {
+  const base = img.name.replace(/\.[^.]+$/, '');
+  return `${base}${getSuffix(preset)}.${getExt(img.file)}`;
+}
+
+function updateSuffixPreview() {
+  const selected = presets.filter(p => p.checked);
+  const preset = selected[0] || presets[0];
+  const base = 'photo';
+  const suffix = state.suffix === 'none' ? ''
+               : state.suffix === 'auto' ? (preset.width > 0 ? `-${preset.width}w` : '-compressed')
+               : (state.customSuffix || '');
+  const ext = getExt(null);
+  suffixPreview.textContent = `${base}${suffix}.${ext}`;
+}
+
+// ─── Drop / file input ───────────────────────────────────────────────────────
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  addFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+
+// ─── Add files ───────────────────────────────────────────────────────────────
+
+function addFiles(files) {
+  const imageFiles = files.filter(f => f.type.startsWith('image/'));
+  if (!imageFiles.length) return;
+
+  imageFiles.forEach(file => {
+    const id = nextId++;
+    const img = {
+      id,
+      file,
+      name: file.name,
+      origSize: file.size,
+      originalUrl: URL.createObjectURL(file),
+      variants: new Map(), // presetId -> { blob, url }
+    };
+    state.images.push(img);
+    renderCard(img);
+  });
+
+  updateUI();
+}
+
+// ─── Render card ─────────────────────────────────────────────────────────────
+
+function renderCard(img) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.id = img.id;
+
+  el.innerHTML = `
+    <div class="card-thumb-wrap">
+      <img class="card-thumb" src="${img.originalUrl}" alt="" />
+      <button class="card-remove" title="Remove">✕</button>
+    </div>
+    <div class="card-body">
+      <div class="card-name" title="${esc(img.name)}">${esc(img.name)}</div>
+      <div class="card-orig">${fmtSize(img.origSize)}</div>
+      <div class="variants" id="variants-${img.id}">
+        <span class="no-sizes">Select sizes and click Process</span>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:6px">
+        <button class="card-dl-btn" id="card-dl-${img.id}" style="display:none;margin-top:0">↓ Download</button>
+        <button class="card-compare-btn" id="card-cmp-${img.id}" style="display:none">↔ Compare</button>
+      </div>
+    </div>
+  `;
+
+  el.querySelector('.card-remove').addEventListener('click', () => removeImage(img.id));
+  el.querySelector(`#card-dl-${img.id}`).addEventListener('click', () => downloadImage(img));
+  el.querySelector(`#card-cmp-${img.id}`).addEventListener('click', () => {
+    const firstDone = presets.find(p => p.checked && img.variants.has(p.id));
+    if (firstDone) openCompare(img, firstDone.id);
+  });
+  cardList.appendChild(el);
+  refreshVariants(img);
+}
+
+function refreshVariants(img) {
+  const container = document.getElementById(`variants-${img.id}`);
+  if (!container) return;
+  const selected = presets.filter(p => p.checked);
+
+  if (!selected.length) {
+    container.innerHTML = `<span class="no-sizes">No sizes selected</span>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  selected.forEach(preset => {
+    const v = img.variants.get(preset.id);
+    const chip = document.createElement('div');
+    chip.className = 'variant' + (v ? ' done' : '');
+    chip.dataset.pid = preset.id;
+    chip.id = `variant-${img.id}-${preset.id}`;
+
+    const label = preset.width > 0 ? `${preset.width}w` : 'orig';
+
+    if (v) {
+      const outName = getOutName(img, preset);
+      chip.innerHTML = `
+        <span class="variant-label">${label}</span>
+        <span class="variant-size">${fmtSize(v.blob.size)}</span>
+        <button class="variant-dl" title="Download ${outName}">↓</button>
+      `;
+      chip.querySelector('.variant-dl').addEventListener('click', () => downloadBlob(v.blob, outName));
+    } else {
+      chip.innerHTML = `<span class="variant-label">${label}</span><span class="variant-size">—</span>`;
+    }
+
+    container.appendChild(chip);
+  });
+
+  // show/hide per-image download + compare buttons
+  const dlBtn  = document.getElementById(`card-dl-${img.id}`);
+  const cmpBtn = document.getElementById(`card-cmp-${img.id}`);
+  const doneCount = selected.filter(p => img.variants.has(p.id)).length;
+  if (dlBtn)  { dlBtn.style.display  = doneCount > 0 ? 'inline-block' : 'none'; dlBtn.textContent = doneCount > 1 ? '↓ Download (ZIP)' : '↓ Download'; }
+  if (cmpBtn) { cmpBtn.style.display = doneCount > 0 ? 'inline-block' : 'none'; }
+}
+
+// ─── Process ─────────────────────────────────────────────────────────────────
+
+processBtn.addEventListener('click', async () => {
+  const selected = presets.filter(p => p.checked);
+  if (!state.images.length || !selected.length) return;
+
+  processBtn.disabled = true;
+  processBtn.textContent = 'Processing…';
+
+  for (const img of state.images) {
+    for (const preset of selected) {
+      const chipId = `variant-${img.id}-${preset.id}`;
+      const chip = document.getElementById(chipId);
+      if (chip) { chip.className = 'variant processing'; chip.innerHTML = `<span class="variant-label">${preset.width > 0 ? preset.width+'w' : 'orig'}</span><span class="variant-size">…</span>`; }
+
+      try {
+        const blob = await processImage(img.file, preset);
+        const url = URL.createObjectURL(blob);
+        img.variants.set(preset.id, { blob, url });
+      } catch (err) {
+        console.error(err);
+        if (chip) { chip.className = 'variant error'; chip.querySelector('.variant-size').textContent = 'err'; }
+      }
+    }
+    refreshVariants(img);
+  }
+
+  processBtn.textContent = 'Process Images';
+  processBtn.disabled = false;
+  downloadAllBtn.disabled = false;
+  updateStats();
+});
+
+// ─── WASM codecs (MozJPEG + OxiPNG + libwebp) ───────────────────────────────
+
+const codecs = { jpeg: null, png: null, webp: null, ready: false };
+
+async function loadCodecs() {
+  try {
+    const [jpegMod, pngMod, webpMod] = await Promise.all([
+      import('https://esm.sh/@jsquash/jpeg@1.4.0'),
+      import('https://esm.sh/@jsquash/png@3.0.1'),
+      import('https://esm.sh/@jsquash/webp@1.4.0'),
+    ]);
+    codecs.jpeg = jpegMod.encode;
+    codecs.png  = pngMod.encode;
+    codecs.webp = webpMod.encode;
+    codecs.ready = true;
+    setCodecBadge('ready', 'MozJPEG + OxiPNG ready');
+  } catch (e) {
+    console.warn('WASM codecs unavailable, using browser encoder:', e);
+    setCodecBadge('fallback', 'Browser encoder (fallback)');
+  }
+}
+
+function setCodecBadge(cls, text) {
+  const el = document.getElementById('codecBadge');
+  el.className = 'codec-badge ' + cls;
+  el.textContent = text;
+}
+
+async function processImage(file, preset) {
+  // Load image into a canvas for resizing
+  const imgEl = await new Promise((resolve, reject) => {
+    const el = new Image();
+    const url = URL.createObjectURL(file);
+    el.onload = () => { URL.revokeObjectURL(url); resolve(el); };
+    el.onerror = () => reject(new Error('Load failed'));
+    el.src = url;
+  });
+
+  let { width, height } = imgEl;
+  const mw = preset.width;
+  if (mw > 0 && width > mw) {
+    height = Math.round(height * mw / width);
+    width = mw;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imgEl, 0, 0, width, height);
+
+  const mime = state.format === 'same'
+    ? (file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg')
+    : (state.format === 'png' ? 'image/png' : state.format === 'webp' ? 'image/webp' : 'image/jpeg');
+
+  const quality = state.quality;
+
+  // Try WASM encoder first (MozJPEG / OxiPNG / libwebp)
+  if (codecs.ready) {
+    try {
+      const imageData = ctx.getImageData(0, 0, width, height);
+      let buffer;
+      if (mime === 'image/jpeg' && codecs.jpeg) {
+        buffer = await codecs.jpeg(imageData, { quality });
+      } else if (mime === 'image/png' && codecs.png) {
+        buffer = await codecs.png(imageData, { effort: 3 });
+      } else if (mime === 'image/webp' && codecs.webp) {
+        buffer = await codecs.webp(imageData, { quality });
+      }
+      if (buffer) return new Blob([buffer], { type: mime });
+    } catch (e) {
+      console.warn('WASM encode failed, falling back to canvas:', e);
+    }
+  }
+
+  // Fallback: browser's built-in canvas encoder
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), mime, quality / 100);
+  });
+}
+
+// ─── Download all as ZIP ──────────────────────────────────────────────────────
+
+downloadAllBtn.addEventListener('click', async () => {
+  const entries = [];
+  for (const img of state.images) {
+    for (const [pid, v] of img.variants) {
+      const preset = presets.find(p => p.id === pid);
+      if (preset) entries.push({ blob: v.blob, name: getOutName(img, preset) });
+    }
+  }
+  if (!entries.length) return;
+
+  downloadAllBtn.disabled = true;
+  downloadAllBtn.textContent = 'Zipping…';
+  try {
+    const zip = await buildZip(entries);
+    downloadBlob(zip, 'resized-images.zip');
+  } catch (err) {
+    alert('ZIP failed: ' + err.message);
+  }
+  downloadAllBtn.textContent = 'Download All as ZIP';
+  downloadAllBtn.disabled = false;
+});
+
+// ─── Per-image download ───────────────────────────────────────────────────────
+
+async function downloadImage(img) {
+  const entries = [];
+  for (const [pid, v] of img.variants) {
+    const preset = presets.find(p => p.id === pid);
+    if (preset) entries.push({ blob: v.blob, name: getOutName(img, preset) });
+  }
+  if (!entries.length) return;
+  if (entries.length === 1) {
+    downloadBlob(entries[0].blob, entries[0].name);
+  } else {
+    const zip = await buildZip(entries);
+    const base = img.name.replace(/\.[^.]+$/, '');
+    downloadBlob(zip, `${base}-resized.zip`);
+  }
+}
+
+// ─── ZIP builder (fflate) ────────────────────────────────────────────────────
+
+async function buildZip(entries) {
+  const files = {};
+  for (const e of entries) {
+    // Store without re-compressing — images are already compressed formats
+    files[e.name] = [new Uint8Array(await e.blob.arrayBuffer()), { level: 0 }];
+  }
+  return new Promise((resolve, reject) => {
+    fflate.zip(files, (err, data) => {
+      if (err) reject(err);
+      else resolve(new Blob([data], { type: 'application/zip' }));
+    });
+  });
+}
+
+// ─── Misc helpers ─────────────────────────────────────────────────────────────
+
+function removeImage(id) {
+  const idx = state.images.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const img = state.images[idx];
+  URL.revokeObjectURL(img.originalUrl);
+  img.variants.forEach(v => URL.revokeObjectURL(v.url));
+  state.images.splice(idx, 1);
+  cardList.querySelector(`[data-id="${id}"]`)?.remove();
+  updateUI();
+}
+
+clearBtn.addEventListener('click', () => {
+  state.images.forEach(img => {
+    URL.revokeObjectURL(img.originalUrl);
+    img.variants.forEach(v => URL.revokeObjectURL(v.url));
+  });
+  state.images = [];
+  cardList.innerHTML = '';
+  updateUI();
+});
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+function esc(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateUI() {
+  const hasImages = state.images.length > 0;
+  const selected = presets.filter(p => p.checked);
+  const hasDone = state.images.some(i => i.variants.size > 0);
+
+  processBtn.disabled = !hasImages || !selected.length;
+  downloadAllBtn.disabled = !hasDone;
+  clearBtn.disabled = !hasImages;
+  statsBar.style.display = hasImages ? 'flex' : 'none';
+
+  // refresh all variant chips when preset selection changes
+  state.images.forEach(img => refreshVariants(img));
+  updateStats();
+}
+
+function updateStats() {
+  const count = state.images.length;
+  const selected = presets.filter(p => p.checked);
+  const origTotal = state.images.reduce((s, i) => s + i.origSize, 0);
+  let newTotal = 0;
+  state.images.forEach(img => img.variants.forEach(v => { newTotal += v.blob.size; }));
+  const saved = origTotal - newTotal;
+
+  document.getElementById('statCount').textContent = count;
+  document.getElementById('statSizes').textContent = selected.length;
+  document.getElementById('statOrigSize').textContent = fmtSize(origTotal);
+  document.getElementById('statNewSize').textContent = newTotal > 0 ? fmtSize(newTotal) : '—';
+  document.getElementById('statSaved').textContent = saved > 0 && origTotal > 0
+    ? `${fmtSize(saved)} (${Math.round(saved / origTotal * 100)}%)`
+    : '—';
+}
+
+// ─── Compare modal ────────────────────────────────────────────────────────────
+
+const compareModal  = document.getElementById('compareModal');
+const compareWrap   = document.getElementById('compareWrap');
+const compareOrigImg = document.getElementById('compareOrigImg');
+const compareProcImg = document.getElementById('compareProcImg');
+const compareHandle  = document.getElementById('compareHandle');
+
+let cmp = { img: null, presetId: null, pct: 50, dragging: false };
+
+function openCompare(img, presetId) {
+  cmp.img = img;
+  cmp.presetId = presetId;
+  cmp.pct = 50;
+  renderCompareModal();
+  compareModal.style.display = 'flex';
+}
+
+function renderCompareModal() {
+  const { img, presetId } = cmp;
+  const variant = img.variants.get(presetId);
+  if (!variant) return;
+
+  document.getElementById('compareTitle').textContent = img.name;
+
+  compareOrigImg.src = img.originalUrl;
+  compareProcImg.src = variant.url;
+
+  const preset   = presets.find(p => p.id === presetId);
+  const savings  = Math.round((1 - variant.blob.size / img.origSize) * 100);
+  const sizeLabel = preset ? (preset.width > 0 ? `${preset.width}w · ` : 'Original size · ') : '';
+  document.getElementById('compareSizeInfo').innerHTML =
+    `<strong>Original</strong> ${fmtSize(img.origSize)} &nbsp;→&nbsp; ` +
+    `<strong>${sizeLabel}${fmtSize(variant.blob.size)}</strong> ` +
+    `<span class="compare-size-savings">${savings > 0 ? '↓ ' + savings + '% smaller' : '(no reduction)'}</span>`;
+
+  // variant tabs (only if multiple done)
+  const tabs = document.getElementById('compareVariantTabs');
+  tabs.innerHTML = '';
+  const done = presets.filter(p => p.checked && img.variants.has(p.id));
+  if (done.length > 1) {
+    done.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'compare-tab' + (p.id === presetId ? ' active' : '');
+      btn.textContent = p.width > 0 ? `${p.width}w` : 'orig';
+      btn.addEventListener('click', () => { cmp.presetId = p.id; renderCompareModal(); });
+      tabs.appendChild(btn);
+    });
+  }
+
+  moveSlider(cmp.pct);
+}
+
+function moveSlider(pct) {
+  cmp.pct = Math.max(0, Math.min(100, pct));
+  compareProcImg.style.clipPath = `inset(0 ${100 - cmp.pct}% 0 0)`;
+  compareHandle.style.left = cmp.pct + '%';
+}
+
+function sliderPctFromEvent(e) {
+  const rect = compareWrap.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  return (clientX - rect.left) / rect.width * 100;
+}
+
+compareWrap.addEventListener('mousedown', e => {
+  cmp.dragging = true;
+  moveSlider(sliderPctFromEvent(e));
+  e.preventDefault();
+});
+compareWrap.addEventListener('touchstart', e => {
+  cmp.dragging = true;
+  moveSlider(sliderPctFromEvent(e));
+}, { passive: true });
+window.addEventListener('mousemove',  e => { if (cmp.dragging) moveSlider(sliderPctFromEvent(e)); });
+window.addEventListener('touchmove',  e => { if (cmp.dragging) moveSlider(sliderPctFromEvent(e)); }, { passive: true });
+window.addEventListener('mouseup',    () => { cmp.dragging = false; });
+window.addEventListener('touchend',   () => { cmp.dragging = false; });
+
+document.getElementById('compareClose').addEventListener('click', () => { compareModal.style.display = 'none'; });
+compareModal.addEventListener('click', e => { if (e.target === compareModal) compareModal.style.display = 'none'; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') compareModal.style.display = 'none'; });
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+renderPresets();
+updateSuffixPreview();
+loadCodecs();
+</script>
+</body>
+</html>
